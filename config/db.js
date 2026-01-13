@@ -11,8 +11,6 @@ const connectDB = async () => {
       minPoolSize: 2, // Maintain at least 2 socket connections
       retryWrites: true, // Automatically retry writes
       w: 'majority', // Write concern
-      bufferCommands: false, // Disable mongoose buffering
-      bufferMaxEntries: 0, // Disable buffering
       connectTimeoutMS: 30000, // Increased connection timeout
     };
 

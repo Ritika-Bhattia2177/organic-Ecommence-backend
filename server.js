@@ -10,6 +10,7 @@ const helmetConfig = require('./config/security');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const ensureDbConnection = require('./middleware/dbCheck');
 
 // Load environment variables
 dotenv.config();
@@ -80,6 +81,9 @@ app.use(cookieParser());
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
+
+// Database connection check middleware for all API routes
+app.use('/api/', ensureDbConnection);
 
 // Rate limiting for API routes
 app.use('/api/', apiLimiter);
