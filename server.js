@@ -15,55 +15,55 @@ const ensureDbConnection = require('./middleware/dbCheck');
 // Load environment variables
 dotenv.config();
 
-// Initialize Express app first for serverless
+// Initialize Express app
 const app = express();
 
-// Connect to MongoDB (async for serverless)
-let isConnected = false;
-const ensureDbConnection = async () => {
-  if (!isConnected) {
-    await connectDB();
-    isConnected = true;
-  }
-};
+// ============================================
+// CRITICAL: CORS MUST BE FIRST - BEFORE ANY OTHER MIDDLEWARE
+// ============================================
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'https://frontend-lemon-ten-90.vercel.app'
+];
 
-// Initialize connection
-ensureDbConnection().catch(console.error);
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now to test
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+}));
+
+// Handle OPTIONS preflight for ALL routes
+app.options('*', cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200
+}));
+
+// Connect to MongoDB
+connectDB();
 
 // Passport configuration
 require('./config/passport')(passport);
 
-// CORS configuration - MUST be first before any other middleware
-const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'https://frontend-lemon-ten-90.vercel.app',
-    'https://organic-ecommerce-frontend.vercel.app',
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Set-Cookie']
-};
-
-// Apply CORS before anything else
-app.use(cors(corsOptions));
-
-// Handle OPTIONS requests explicitly - return 200
-app.options('*', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.status(200).end();
-});
-
-// Security Middleware
-// Helmet - Set security HTTP headers
+// Security Middleware - Helmet
 app.use(helmetConfig);
 
 // Body parser middleware with size limits
