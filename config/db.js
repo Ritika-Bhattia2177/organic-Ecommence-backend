@@ -2,17 +2,18 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    // Mongoose connection options
+    // Mongoose connection options optimized for Vercel serverless
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+      serverSelectionTimeoutMS: 30000, // Increased timeout for Vercel
+      socketTimeoutMS: 75000, // Longer socket timeout
       family: 4, // Use IPv4, skip trying IPv6
       maxPoolSize: 10, // Maintain up to 10 socket connections
-      minPoolSize: 5, // Maintain at least 5 socket connections
+      minPoolSize: 2, // Maintain at least 2 socket connections
       retryWrites: true, // Automatically retry writes
       w: 'majority', // Write concern
+      bufferCommands: false, // Disable mongoose buffering
+      bufferMaxEntries: 0, // Disable buffering
+      connectTimeoutMS: 30000, // Increased connection timeout
     };
 
     // Connect to MongoDB
