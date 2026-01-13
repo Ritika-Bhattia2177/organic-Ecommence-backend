@@ -47,11 +47,13 @@ const corsOptions = {
       'http://localhost:5174',
       'http://localhost:5175',
       'https://organic-ecommerce-frontend.vercel.app',
+      'https://frontend-lemon-ten-90.vercel.app',
       /\.vercel\.app$/ // Allow all Vercel preview deployments
     ];
     
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) {
+      console.log('✅ Request with no origin allowed');
       callback(null, true);
     } else if (allowedOrigins.some(allowed => {
       if (allowed instanceof RegExp) {
@@ -59,8 +61,10 @@ const corsOptions = {
       }
       return allowed === origin;
     })) {
+      console.log('✅ CORS allowed for origin:', origin);
       callback(null, true);
     } else {
+      console.log('❌ CORS blocked for origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },

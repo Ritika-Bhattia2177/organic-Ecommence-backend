@@ -35,51 +35,67 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  // Validate input
-  if (!name || !email || !password) {
-    const error = new Error('Please provide all required fields');
-    error.statusCode = 400;
-    throw error;
+    console.log('📝 Registration attempt:', { name, email });
+
+    // Validate input
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
+      });
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: emailValidation.message
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message
+      });
+    }
+
+    // Sanitize name input
+    const sanitizedName = sanitizeInput(name);
+
+    // Check if user already exists
+    const userExists = await User.findOne({ email: email.toLowerCase() });
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+
+    // Create user
+    const user = await User.create({
+      name: sanitizedName,
+      email: email.toLowerCase(),
+      password
+    });
+
+    console.log('✅ User created successfully:', user.email);
+
+    // Send token response with cookie
+    sendTokenResponse(user, 201, res);
+  } catch (error) {
+    console.error('❌ Registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Registration failed. Please try again.'
+    });
   }
-
-  // Validate email format
-  const emailValidation = validateEmail(email);
-  if (!emailValidation.isValid) {
-    const error = new Error(emailValidation.message);
-    error.statusCode = 400;
-    throw error;
-  }
-
-  // Validate password strength
-  const passwordValidation = validatePassword(password);
-  if (!passwordValidation.isValid) {
-    const error = new Error(passwordValidation.message);
-    error.statusCode = 400;
-    throw error;
-  }
-
-  // Sanitize name input
-  const sanitizedName = sanitizeInput(name);
-
-  // Check if user already exists
-  const userExists = await User.findOne({ email: email.toLowerCase() });
-  if (userExists) {
-    const error = new Error('User already exists with this email');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  // Create user
-  const user = await User.create({
-    name: sanitizedName,
-    email: email.toLowerCase(),
-    password
-  });
-
-  // Send token response with cookie
-  sendTokenResponse(user, 201, res);
 });
 
 // @desc    Login user
