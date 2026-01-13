@@ -33,11 +33,7 @@ ensureDbConnection().catch(console.error);
 // Passport configuration
 require('./config/passport')(passport);
 
-// Security Middleware
-// Helmet - Set security HTTP headers
-app.use(helmetConfig);
-
-// CORS configuration
+// CORS configuration - MUST be first before any other middleware
 const corsOptions = {
   origin: [
     'http://localhost:5173',
@@ -56,8 +52,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
+// Handle preflight requests explicitly for all routes
 app.options('*', cors(corsOptions));
+
+// Security Middleware
+// Helmet - Set security HTTP headers
+app.use(helmetConfig);
 
 // Body parser middleware with size limits
 app.use(express.json({ limit: '10mb' }));
