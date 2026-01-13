@@ -212,14 +212,18 @@ exports.googleCallback = asyncHandler(async (req, res) => {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    sameSite: 'lax' // Changed from 'strict' to 'lax' for cross-site redirects
   };
 
   // Set cookie
   res.cookie('token', token, cookieOptions);
 
-  // Redirect to frontend with token
-  const redirectUrl = `${process.env.FRONTEND_URL}/auth/google/success?token=${token}`;
+  // Redirect to frontend with token - use production URL in production
+  const frontendUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://frontend-lemon-ten-90.vercel.app'
+    : (process.env.FRONTEND_URL || 'http://localhost:5173');
+  
+  const redirectUrl = `${frontendUrl}/auth/google/success?token=${token}`;
   res.redirect(redirectUrl);
 });
 
