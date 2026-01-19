@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const cartSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.Mixed, // Can be ObjectId or String for guest users
-    required: [true, 'User ID is required'],
-    index: true
+    required: [true, 'User ID is required']
   },
   isGuest: {
     type: Boolean,

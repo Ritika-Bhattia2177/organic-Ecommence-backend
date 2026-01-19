@@ -6,10 +6,14 @@ const {
   createProduct,
   updateProduct,
   deleteProduct,
-  createReview
+  createReview,
+  searchProducts
 } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { validateRequest, validateProduct } = require('../utils/validation');
+
+// Search route (must come before :id routes)
+router.get('/search', searchProducts);
 
 router.route('/')
   .get(getProducts)

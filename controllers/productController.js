@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
+const { fetchExternalProducts, combineResults } = require('../utils/searchService');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -187,4 +188,79 @@ exports.createReview = asyncHandler(async (req, res) => {
     success: true,
     message: 'Review added successfully'
   });
+});
+
+// @desc    Search products (local + external)
+// @route   GET /api/products/search
+// @access  Public
+exports.searchProducts = asyncHandler(async (req, res) => {
+  const { q, category, limit = 10, includeExternal = true } = req.query;
+
+  // Validate search query
+  if (!q || q.trim().length < 2) {
+    return res.status(400).json({
+      success: false,
+      message: 'Search query must be at least 2 characters'
+    });
+  }
+
+  const searchTerm = q.trim();
+  const pageLimit = Math.min(parseInt(limit, 10) || 10, 50); // Max 50 results per page
+
+  try {
+    // 🔍 Search in local database
+    const localQuery = {
+      $or: [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
+        { tags: { $regex: searchTerm, $options: 'i' } },
+        { benefits: { $regex: searchTerm, $options: 'i' } }
+      ]
+    };
+
+    // Add category filter if specified
+    if (category && category !== 'All') {
+      localQuery.category = category;
+    }
+
+    const localProducts = await Product.find(localQuery)
+      .limit(pageLimit)
+      .sort({ rating: -1, createdAt: -1 })
+      .populate('createdBy', 'name email');
+
+    console.log(`✅ Found ${localProducts.length} local products for: "${searchTerm}"`);
+
+    let externalProducts = [];
+
+    // 🌐 If no local products found or includeExternal is true, fetch from external API
+    if (includeExternal === 'true' && localProducts.length < pageLimit) {
+      externalProducts = await fetchExternalProducts(searchTerm);
+      console.log(`✅ Found ${externalProducts.length} external products for: "${searchTerm}"`);
+    }
+
+    // Combine results
+    const combinedResults = combineResults(localProducts, externalProducts);
+
+    // Return response
+    res.status(200).json({
+      success: true,
+      query: searchTerm,
+      totalResults: combinedResults.total,
+      localCount: combinedResults.local.count,
+      externalCount: combinedResults.external.count,
+      data: combinedResults.combinedData.slice(0, pageLimit),
+      message: combinedResults.total === 0 
+        ? 'No products found. Would you like to request this product?' 
+        : `Found ${combinedResults.total} products`
+    });
+
+  } catch (error) {
+    console.error('❌ Search Error:', error.message);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error during search',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
 });

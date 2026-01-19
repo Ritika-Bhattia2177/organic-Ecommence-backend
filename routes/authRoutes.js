@@ -21,15 +21,21 @@ router.post('/google', authLimiter, googleAuth);
 router.get('/google', 
   passport.authenticate('google', { 
     scope: ['profile', 'email'],
-    session: false 
+    session: false,
+    accessType: 'offline',
+    prompt: 'consent'
   })
 );
 
 router.get('/google/callback',
   passport.authenticate('google', { 
-    failureRedirect: process.env.NODE_ENV === 'production'
-      ? 'https://frontend-lemon-ten-90.vercel.app/login?error=google_auth_failed'
-      : `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=google_auth_failed`,
+    failureRedirect: (req, res) => {
+      const errorUrl = req.query.error || 'google_auth_failed';
+      const redirectUrl = process.env.NODE_ENV === 'production'
+        ? `https://frontend-lemon-ten-90.vercel.app/login?error=${errorUrl}`
+        : `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=${errorUrl}`;
+      return res.redirect(redirectUrl);
+    },
     session: false 
   }),
   googleCallback
