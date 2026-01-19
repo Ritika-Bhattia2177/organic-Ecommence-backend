@@ -57,11 +57,19 @@ app.options('*', cors({
   optionsSuccessStatus: 200
 }));
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (with error handling)
+try {
+  connectDB();
+} catch (error) {
+  console.error('❌ Database connection error:', error.message);
+}
 
-// Passport configuration
-require('./config/passport')(passport);
+// Passport configuration (with error handling)
+try {
+  require('./config/passport')(passport);
+} catch (error) {
+  console.error('❌ Passport configuration error:', error.message);
+}
 
 // Security Middleware - Helmet
 app.use(helmetConfig);
@@ -76,10 +84,7 @@ app.use(cookieParser());
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
 
-// Database connection check middleware for all API routes
-app.use('/api/', ensureDbConnection);
-
-// Rate limiting for API routes
+// Rate limiting for API routes (before database check)
 app.use('/api/', apiLimiter);
 
 // Express session middleware
@@ -97,6 +102,9 @@ app.use(session({
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Database connection check middleware for all API routes (after passport)
+app.use('/api/', ensureDbConnection);
 
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -119,6 +127,11 @@ app.get('/api/health', (req, res) => {
     message: 'OrganicMart API is running',
     timestamp: new Date().toISOString()
   });
+});
+
+// Favicon handler (prevent 500 errors)
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
 });
 
 // 404 handler
