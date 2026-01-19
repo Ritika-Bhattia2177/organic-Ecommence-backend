@@ -29,13 +29,7 @@ router.get('/google',
 
 router.get('/google/callback',
   passport.authenticate('google', { 
-    failureRedirect: (req, res) => {
-      const errorUrl = req.query.error || 'google_auth_failed';
-      const redirectUrl = process.env.NODE_ENV === 'production'
-        ? `https://frontend-lemon-ten-90.vercel.app/login?error=${errorUrl}`
-        : `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=${errorUrl}`;
-      return res.redirect(redirectUrl);
-    },
+    failureRedirect: '/login?error=google_auth_failed',
     session: false 
   }),
   googleCallback
