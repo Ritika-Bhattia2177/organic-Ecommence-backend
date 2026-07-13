@@ -151,6 +151,15 @@ io.on('connection', (socket) => {
   });
 });
 
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'OrganicMart Backend is Running 🚀'
+  });
+});
+
+
 // Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -175,16 +184,18 @@ app.use((req, res, next) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-// Start server
+// Start server only for local development
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+
+if (process.env.VERCEL !== '1') {
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  });
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.log(`❌ Error: ${err.message}`);
-  server.close(() => process.exit(1));
+  console.error(`❌ Error: ${err.message}`);
 });
 
 module.exports = app;
