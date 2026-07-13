@@ -37,7 +37,9 @@ app.disable('x-powered-by');
 // =====================================================
 
 try {
-  connectDB();
+  connectDB().catch((err) => {
+    console.error('Database Connection Error:', err.message);
+  });
 } catch (err) {
   console.error('Database Connection Error:', err.message);
 }

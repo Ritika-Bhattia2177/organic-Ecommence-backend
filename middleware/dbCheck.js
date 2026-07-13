@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const connectDB = require('../config/db');
 
 // Middleware to ensure database connection before processing requests
 const ensureDbConnection = async (req, res, next) => {
@@ -7,16 +8,17 @@ const ensureDbConnection = async (req, res, next) => {
   }
 
   if (mongoose.connection.readyState !== 1) {
-    // If not connected, wait a bit and check again
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    while (mongoose.connection.readyState !== 1 && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error('Database connection attempt failed in middleware:', error.message);
     }
-    
+
     if (mongoose.connection.readyState !== 1) {
+      console.error(
+        `Database not ready. readyState=${mongoose.connection.readyState} route=${req.originalUrl}`
+      );
+
       return res.status(503).json({
         success: false,
         message: 'Database connection not ready. Please try again.'
