@@ -6,7 +6,8 @@ const {
   getMyOrders,
   getOrders,
   updateOrderStatus,
-  trackOrder
+  trackOrder,
+  generateInvoice
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { createOrderLimiter } = require('../middleware/rateLimiter');
@@ -23,6 +24,9 @@ router.route('/')
 
 router.route('/:id')
   .get(protect, getOrderById);
+
+router.route('/:id/invoice')
+  .get(protect, generateInvoice);
 
 router.route('/:id/status')
   .put(protect, admin, updateOrderStatus);

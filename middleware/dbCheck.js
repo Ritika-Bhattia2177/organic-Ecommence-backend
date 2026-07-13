@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 // Middleware to ensure database connection before processing requests
 const ensureDbConnection = async (req, res, next) => {
+  if (req.originalUrl.startsWith('/api/location')) {
+    return next();
+  }
+
   if (mongoose.connection.readyState !== 1) {
     // If not connected, wait a bit and check again
     let attempts = 0;
