@@ -1,5 +1,17 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+
+function getFrontendUrl() {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('FRONTEND_URL must be set in production');
+  }
+
+  return 'http://localhost:5173';
+}
 const { validateEmail, validatePassword, sanitizeInput } = require('../utils/validation');
 
 // Helper function to send token response with cookie
@@ -218,11 +230,8 @@ exports.googleCallback = asyncHandler(async (req, res) => {
   // Set cookie
   res.cookie('token', token, cookieOptions);
 
-  // Redirect to frontend with token - use production URL in production
-  const frontendUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://frontend-lemon-ten-90.vercel.app'
-    : (process.env.FRONTEND_URL || 'http://localhost:5173');
-  
+  // Redirect to the configured frontend URL
+  const frontendUrl = getFrontendUrl();
   const redirectUrl = `${frontendUrl}/auth/google/success?token=${token}`;
   res.redirect(redirectUrl);
 });

@@ -26,13 +26,21 @@ const server = http.createServer(app);
 // ============================================
 // CRITICAL: CORS MUST BE FIRST - BEFORE ANY OTHER MIDDLEWARE
 // ============================================
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'https://frontend-lemon-ten-90.vercel.app'
-];
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      process.env.FRONTEND_URL,
+      process.env.CORS_ORIGINS,
+    ]
+      .flatMap((value) => (value ? value.split(',') : []))
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  )
+);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -42,7 +50,7 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all for now to test
+      callback(new Error(`CORS blocked for origin: ${origin}`), false);
     }
   },
   credentials: true,
@@ -55,7 +63,7 @@ app.use(cors({
 
 // Handle OPTIONS preflight for ALL routes
 app.options('*', cors({
-  origin: true,
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
