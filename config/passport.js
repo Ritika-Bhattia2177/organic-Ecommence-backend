@@ -21,7 +21,7 @@ module.exports = function(passport) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: getGoogleCallbackUrl(),
+        callbackURL: 'https://organic-ecommerce-backend-cxcu.vercel.app/api/auth/google/callback',
         proxy: true
       },
       async (accessToken, refreshToken, profile, done) => {
