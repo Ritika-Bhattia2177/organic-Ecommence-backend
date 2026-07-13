@@ -19,6 +19,14 @@ module.exports = function (passport) {
   console.log("Google Client ID:", process.env.GOOGLE_CLIENT_ID);
   console.log("Google Callback URL:", getGoogleCallbackUrl());
 
+
+  console.log("===== GOOGLE OAUTH CONFIG =====");
+console.log("CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
+console.log("CALLBACK_URL:", process.env.GOOGLE_CALLBACK_URL);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("===============================");
+
+
   passport.use(
     new GoogleStrategy(
       {
