@@ -19,19 +19,42 @@ const { setIo, registerSocketHandlers } = require('./utils/socket');
 
 dotenv.config();
 
-// ========================================
-// Express App
-// ========================================
+// =====================================================
+// EXPRESS APP
+// =====================================================
 
 const app = express();
 const server = http.createServer(app);
 
-// IMPORTANT FOR VERCEL
+// Required for Vercel / Render / Railway
 app.set('trust proxy', 1);
 
-// ========================================
-// Allowed Origins
-// ========================================
+// Hide Express signature
+app.disable('x-powered-by');
+
+// =====================================================
+// DATABASE
+// =====================================================
+
+try {
+  connectDB();
+} catch (err) {
+  console.error('Database Connection Error:', err.message);
+}
+
+// =====================================================
+// PASSPORT
+// =====================================================
+
+try {
+  require('./config/passport')(passport);
+} catch (err) {
+  console.error('Passport Error:', err.message);
+}
+
+// =====================================================
+// ALLOWED ORIGINS
+// =====================================================
 
 const allowedOrigins = Array.from(
   new Set(
@@ -43,17 +66,17 @@ const allowedOrigins = Array.from(
       process.env.FRONTEND_URL,
       process.env.CORS_ORIGINS
     ]
-      .flatMap(item => (item ? item.split(',') : []))
-      .map(item => item.trim())
+      .flatMap(origin => origin ? origin.split(',') : [])
+      .map(origin => origin.trim())
       .filter(Boolean)
   )
 );
 
-// ========================================
+// =====================================================
 // CORS
-// ========================================
+// =====================================================
 
-app.use(cors({
+const corsOptions = {
   origin(origin, callback) {
 
     if (!origin) {
@@ -64,7 +87,9 @@ app.use(cors({
       return callback(null, true);
     }
 
-    return callback(new Error(`CORS blocked: ${origin}`));
+    console.log(`Blocked Origin: ${origin}`);
+
+    return callback(new Error(`CORS blocked for ${origin}`));
   },
 
   credentials: true,
@@ -81,36 +106,20 @@ app.use(cors({
   allowedHeaders: [
     'Content-Type',
     'Authorization',
-    'X-Requested-With',
-    'Accept'
-  ]
-}));
+    'Accept',
+    'X-Requested-With'
+  ],
 
-app.options('*', cors());
+  optionsSuccessStatus: 200
+};
 
-// ========================================
-// MongoDB
-// ========================================
+app.use(cors(corsOptions));
 
-try {
-  connectDB();
-} catch (err) {
-  console.error(err);
-}
+app.options('*', cors(corsOptions));
 
-// ========================================
-// Passport
-// ========================================
-
-try {
-  require('./config/passport')(passport);
-} catch (err) {
-  console.error(err);
-}
-
-// ========================================
-// Middleware
-// ========================================
+// =====================================================
+// SECURITY
+// =====================================================
 
 app.use(helmetConfig);
 
@@ -127,21 +136,19 @@ app.use(cookieParser());
 
 app.use(mongoSanitize());
 
-// ========================================
-// Rate Limiter
-// ========================================
+// =====================================================
+// RATE LIMITER
+// =====================================================
 
 app.use('/api', apiLimiter);
 
-// ========================================
-// Session
-// ========================================
+// =====================================================
+// SESSION
+// =====================================================
 
 app.use(session({
 
-  secret:
-    process.env.SESSION_SECRET ||
-    'secret',
+  secret: process.env.SESSION_SECRET || 'secret',
 
   resave: false,
 
@@ -161,93 +168,83 @@ app.use(session({
 
     httpOnly: true,
 
+    sameSite: 'lax',
+
     maxAge: 24 * 60 * 60 * 1000
 
   }
 
 }));
 
-// ========================================
-// Passport Middleware
-// ========================================
+// =====================================================
+// PASSPORT
+// =====================================================
 
 app.use(passport.initialize());
 
 app.use(passport.session());
 
-// ========================================
-// DB Check
-// ========================================
+// =====================================================
+// DATABASE CHECK
+// =====================================================
 
 app.use('/api', ensureDbConnection);
 
-// ========================================
-// Morgan
-// ========================================
+// =====================================================
+// LOGGER
+// =====================================================
 
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// ========================================
-// Routes
-// ========================================
+// =====================================================
+// ROUTES
+// =====================================================
 
 app.use('/api/auth', require('./routes/authRoutes'));
-
 app.use('/api/users', require('./routes/userRoutes'));
-
 app.use('/api/products', require('./routes/productRoutes'));
-
 app.use('/api/location', require('./routes/locationRoutes'));
-
 app.use('/api/orders', require('./routes/orderRoutes'));
-
 app.use('/api/categories', require('./routes/categoryRoutes'));
-
 app.use('/api/cart', require('./routes/cartRoutes'));
-
 app.use('/api/admin', require('./routes/adminRoutes'));
 
-// ========================================
-// Socket.IO
-// ========================================
+// =====================================================
+// SOCKET.IO
+// =====================================================
 
 const io = new Server(server, {
-
   cors: {
-
     origin: allowedOrigins,
-
     credentials: true
-
   }
-
 });
 
 setIo(io);
 
 io.on('connection', socket => {
 
-  console.log('Socket Connected', socket.id);
+  console.log(`Socket Connected: ${socket.id}`);
 
   registerSocketHandlers(socket);
 
   socket.on('disconnect', () => {
 
-    console.log('Socket Disconnected');
+    console.log(`Socket Disconnected: ${socket.id}`);
 
   });
 
 });
 
-// ========================================
-// Root
-// ========================================
+// =====================================================
+// ROOT ROUTE
+// =====================================================
 
 app.get('/', (req, res) => {
 
-  res.json({
+  res.status(200).json({
 
     success: true,
 
@@ -257,13 +254,13 @@ app.get('/', (req, res) => {
 
 });
 
-// ========================================
-// Health
-// ========================================
+// =====================================================
+// HEALTH ROUTE
+// =====================================================
 
 app.get('/api/health', (req, res) => {
 
-  res.json({
+  res.status(200).json({
 
     success: true,
 
@@ -275,9 +272,9 @@ app.get('/api/health', (req, res) => {
 
 });
 
-// ========================================
-// favicon
-// ========================================
+// =====================================================
+// FAVICON
+// =====================================================
 
 app.get('/favicon.ico', (req, res) => {
 
@@ -285,9 +282,9 @@ app.get('/favicon.ico', (req, res) => {
 
 });
 
-// ========================================
+// =====================================================
 // 404
-// ========================================
+// =====================================================
 
 app.use((req, res, next) => {
 
@@ -299,32 +296,40 @@ app.use((req, res, next) => {
 
 });
 
-// ========================================
-// Error Handler
-// ========================================
+// =====================================================
+// ERROR HANDLER
+// =====================================================
 
 app.use(errorHandler);
 
-// ========================================
-// Local Server Only
-// ========================================
+// =====================================================
+// START SERVER
+// =====================================================
 
 const PORT = process.env.PORT || 5000;
 
-if (process.env.VERCEL !== '1') {
+if (!process.env.VERCEL) {
 
   server.listen(PORT, () => {
 
-    console.log(`Server running on ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 
   });
 
 }
 
+// =====================================================
+// UNHANDLED PROMISES
+// =====================================================
+
 process.on('unhandledRejection', err => {
 
-  console.error(err);
+  console.error('Unhandled Rejection:', err);
 
 });
+
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = app;
